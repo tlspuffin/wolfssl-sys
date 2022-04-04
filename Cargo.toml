@@ -13,3 +13,6 @@ links = "wolfssl"
 [build-dependencies]
 bindgen = "0.59.2"
 autotools = "0.2"
+
+[features]
+openssl = []

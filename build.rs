@@ -76,6 +76,8 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .enable("curve25519", None)
         // Enable Secure Renegotiation
         .enable("secure-renegotiation", None)
+        // Enable OpenSSL Compatibility layer
+        .enable("opensslextra", None) // prefix "enable-" is already added
         // CFLAGS
         .cflag("-g")
         .cflag("-fPIC")
@@ -96,7 +98,11 @@ fn main() -> std::io::Result<()> {
     let dst = build_wolfssl(&dst_string);
 
     // We want to block some macros as they are incorrectly creating duplicate values
-    let ignored_macros = IgnoreMacros(vec!["IPPORT_RESERVED".into()].into_iter().collect());
+    let mut hash_ignored_macros = HashSet::new();
+    for i in vec!["IPPORT_RESERVED", "EVP_PKEY_DH", "BIO_CLOSE", "BIO_NOCLOSE", "CRYPTO_LOCK", "ASN1_STRFLGS_ESC_MSB"] {
+        hash_ignored_macros.insert(i.to_string());
+    }
+    let ignored_macros = IgnoreMacros(hash_ignored_macros);
 
     // Build the Rust binding
     let bindings = bindgen::Builder::default()
