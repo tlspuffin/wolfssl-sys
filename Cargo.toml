@@ -1,7 +1,7 @@
 [package]
 name = "wolfssl-sys"
 version = "0.1.1"
-edition = "2021"
+edition = "2018"
 authors = ["pete.m@expressvpn.com"]
 license = "GPL-2.0"
 readme = "README.md"
@@ -12,7 +12,8 @@ links = "wolfssl"
 
 [build-dependencies]
 bindgen = "0.59.2"
-autotools = "0.2"
+autotools = "0.2.5"
 
 [features]
-openssl = []
+openssl = [] # for enabling the OpenSSL compatibility layer, always turned on for now
+vendored-wolfssl520 = []
