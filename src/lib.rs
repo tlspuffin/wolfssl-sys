@@ -18,10 +18,7 @@ mod tests {
     fn init_wolfssl() {
         unsafe {
             println!("Path to bindings file: {}", concat!(env!("OUT_DIR"), "/bindings.rs"));
-            let mut x = SSL_CTX_new(TLS_method());
-            let b = EVP_PKEY_DH;
-            let a = EVP_des_ede_cbc();
-
+            
             let res = wolfSSL_Init();
             println!("Res: {:?}", res);
 
