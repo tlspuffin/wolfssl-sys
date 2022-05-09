@@ -45,11 +45,18 @@ fn extract_wolfssl(dest: &str) -> std::io::Result<()> {
 Builds WolfSSL
 */
 fn build_wolfssl(dest: &str) -> PathBuf {
-    Config::new(format!("{}/wolfssl-5.2.0-stable", dest))
+    let b = Config::new(format!("{}/wolfssl-5.2.0-stable", dest))
         .reconf("-ivf")
         // Only build the static library
         .enable_static()
         .disable_shared()
+        // Fortunately, there is one comfy option which I’ve used when compiling wolfSSL: --enable-all.
+        // It enables all options, including the OpenSSL compatibility layer and leaves out the SSL 3 protocol.
+        .enable("all", None)
+        //.enable("opensslcoexist", None)
+        // Enable OpenSSL Compatibility layer
+        // .enable("opensslextra", None) // prefix "enable-" is already added
+        /*
         // Enable TLS/1.3
         .enable("tls13", None)
         // Disable old TLS versions
@@ -76,8 +83,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .enable("curve25519", None)
         // Enable Secure Renegotiation
         .enable("secure-renegotiation", None)
-        // Enable OpenSSL Compatibility layer
-        .enable("opensslextra", None) // prefix "enable-" is already added
+        */
         // CFLAGS
         .cflag("-g")
         .cflag("-fPIC")
@@ -85,7 +91,9 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         .cflag("-DWOLFSSL_MIN_ECC_BITS=256")
         // Build it
-        .build()
+        .build();
+    println!("PathBuf:'{}'", b.display());
+    b
 }
 
 fn main() -> std::io::Result<()> {
@@ -99,7 +107,15 @@ fn main() -> std::io::Result<()> {
 
     // We want to block some macros as they are incorrectly creating duplicate values
     let mut hash_ignored_macros = HashSet::new();
-    for i in vec!["IPPORT_RESERVED", "EVP_PKEY_DH", "BIO_CLOSE", "BIO_NOCLOSE", "CRYPTO_LOCK", "ASN1_STRFLGS_ESC_MSB"] {
+    for i in vec![
+        "IPPORT_RESERVED",
+        "EVP_PKEY_DH",
+        "BIO_CLOSE",
+        "BIO_NOCLOSE",
+        "CRYPTO_LOCK",
+        "ASN1_STRFLGS_ESC_MSB",
+        "SSL_MODE_RELEASE_BUFFERS",
+    ] {
         hash_ignored_macros.insert(i.to_string());
     }
     let ignored_macros = IgnoreMacros(hash_ignored_macros);
