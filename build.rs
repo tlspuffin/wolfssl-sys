@@ -53,6 +53,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         // Fortunately, there is one comfy option which I’ve used when compiling wolfSSL: --enable-all.
         // It enables all options, including the OpenSSL compatibility layer and leaves out the SSL 3 protocol.
         .enable("all", None)
+        .enable("debug", None)
         //.enable("opensslcoexist", None)
         // Enable OpenSSL Compatibility layer
         // .enable("opensslextra", None) // prefix "enable-" is already added
@@ -123,6 +124,10 @@ fn main() -> std::io::Result<()> {
     // Build the Rust binding
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
+        .header(format!(
+            "{}/wolfssl-5.2.0-stable/wolfssl/internal.h",
+            dst_string
+        ))
         .clang_arg(format!("-I{}/include/", dst_string))
         .parse_callbacks(Box::new(ignored_macros))
         .rustfmt_bindings(true)
