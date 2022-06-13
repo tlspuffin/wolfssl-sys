@@ -7,6 +7,9 @@ extern crate bindgen;
 use autotools::Config;
 use std::collections::HashSet;
 use std::env;
+use std::fs::canonicalize;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -41,10 +44,41 @@ fn extract_wolfssl(dest: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn insert_claim_interface(additional_headers: &PathBuf) -> std::io::Result<()> {
+    let interface = security_claims::CLAIM_INTERFACE_H;
+
+    let path = additional_headers.join("claim-interface.h");
+
+    let mut file = File::create(path)?;
+    file.write_all(interface.as_bytes())?;
+
+    Ok(())
+}
+
 /**
 Builds WolfSSL
 */
 fn build_wolfssl(dest: &str) -> PathBuf {
+    let additional_headers = PathBuf::from(dest).join("additional_headers");
+
+    std::fs::create_dir_all(&additional_headers).unwrap();
+    insert_claim_interface(&additional_headers).unwrap();
+
+    let mut cc = "clang".to_owned();
+
+    // Make additional headers available
+    cc.push_str(
+        format!(
+            " -I{}",
+            canonicalize(&additional_headers).unwrap().to_str().unwrap()
+        )
+        .as_str(),
+    );
+
+    if cfg!(feature = "sancov") {
+        cc.push_str(" -fsanitize-coverage=trace-pc-guard");
+    }
+
     let b = Config::new(format!("{}/wolfssl-5.2.0-stable", dest))
         .reconf("-ivf")
         // Only build the static library
@@ -91,6 +125,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         .cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         .cflag("-DWOLFSSL_MIN_ECC_BITS=256")
+        .env("CC", cc)
         // Build it
         .build();
     println!("PathBuf:'{}'", b.display());

@@ -13,7 +13,9 @@ links = "wolfssl"
 [build-dependencies]
 bindgen = "0.59.2"
 autotools = "0.2.5"
+security-claims = { path = "../../tlspuffin-claims" }
 
 [features]
 openssl = [] # for enabling the OpenSSL compatibility layer, always turned on for now
 vendored-wolfssl520 = []
+sancov = []
