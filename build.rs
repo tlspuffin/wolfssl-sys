@@ -125,6 +125,9 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         .cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         .cflag("-DWOLFSSL_MIN_ECC_BITS=256")
+        .cflag("-DHAVE_SECRET_CALLBACK")
+        .cflag("-DWOLFSSL_CALLBACKS")
+        .cflag("-DWOLFSSL_TLS13")
         .env("CC", cc)
         // Build it
         .build();
