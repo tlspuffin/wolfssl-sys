@@ -76,17 +76,17 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .enable("context-extra-user-data", None)
         // Fortunately, there is one comfy option which I’ve used when compiling wolfSSL: --enable-all.
         // It enables all options, including the OpenSSL compatibility layer and leaves out the SSL 3 protocol.
-        //.enable("all", None)
-        //.enable("opensslcoexist", None)
+        //.enable("all", None) // FIXME: Do not use this as its non-default
+        //.enable("opensslcoexist", None) // FIXME: not needed
         .enable("keygen", None) // Support for RSA certs
         // Enable TLS/1.3
         .enable("tls13", None)
         // Disable old TLS versions
-        //.disable("oldtls", None)
+        //.disable("oldtls", None) // FIXME: We want TLS 1.2
         // Enable AES hardware acceleration
         .enable("aesni", None)
         // Enable single threaded mode
-        //.enable("singlethreaded", None) // incompatible with "all"
+        //.enable("singlethreaded", None) // FIXME: incompatible with "all"
         // Enable D/TLS
         .enable("dtls", None)
         // Enable single precision
@@ -100,17 +100,90 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         // Enable Intel ASM optmisations
         .enable("intelasm", None)
         // Disable DH key exchanges
-        //.disable("dh", None)
+        //.disable("dh", None) // FIXME: Why should we disable it?
         // Enable elliptic curve exchanges
         .enable("curve25519", None)
         // Enable Secure Renegotiation
         .enable("secure-renegotiation", None)
+        .enable("postauth", None) // FIXME; else the session resumption crashes? SEGV?
+        //.enable("aesccm", None) // FIXME MAYBE ^
+        //.enable("camellia", None) // FIXME MAYBE ^
+        // Debugging
+        /*.enable("atomicuser", None)
+        .enable("aesgcm", None)
+        .enable("aesgcm-stream", None)
+        .enable("aesccm", None)
+        .enable("aesctr", None)
+        .enable("aesofb", None)
+        .enable("aescfb", None)
+        .enable("aescbc-length-checks", None)
+        .enable("camellia", None)
+        .enable("ripemd", None)
+        .enable("sha224", None)
+        .enable("sessioncerts", None)
+        .enable("keygen", None)
+        .enable("certgen", None)
+        .enable("certreq", None)
+        .enable("certext", None)
+        .enable("sep", None)
+        .enable("hkdf", None)
+        .enable("curve25519", None)
+        .enable("curve448", None)
+        .enable("fpecc", None)
+        .enable("eccencrypt", None)
+        .enable("psk", None)
+        .enable("cmac", None)
+        .enable("xts", None)
+        .enable("ocsp", None)
+        .enable("ocspstapling", None)
+        .enable("ocspstapling2", None)
+        .enable("crl", None)
+        .enable("supportedcurves", None)
+        .enable("tlsx", None)
+        .enable("pwdbased", None)
+        .enable("aeskeywrap", None)
+        .enable("x963kdf", None)
+        .enable("scrypt", None)
+        .enable("indef", None)
+        .enable("enckeys", None)
+        .enable("hashflags", None)
+        .enable("defaultdhparams", None)
+        .enable("base64encode", None)
+        .enable("base16", None)
+        .enable("arc4", None)
+        .enable("des3", None)
+        .enable("nullcipher", None)
+        .enable("blake2", None)
+        .enable("blake2s", None)
+        .enable("md2", None)
+        .enable("md4", None)
+        .enable("cryptocb", None)
+        .enable("anon", None)
+        .enable("ssh", No*/
+        // end crypto
+        /*.enable("savesession", None)
+        .enable("savecert", None)
+        .enable("postauth", None)
+        .enable("hrrcookie", None)
+        .enable("fallback-scsv", None)
+        .enable("mcast", None)
+        .enable("webserver", None)
+        .enable("crl-monitor", None)
+        .enable("sni", None)
+        .enable("maxfragment", None)
+        .enable("alpn", None)
+        .enable("truncatedhmac", None)
+        .enable("trusted-ca", None)
+        .enable("session-ticket", None)
+        .enable("earlydata", None)*/
         // CFLAGS
         //.cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         //.cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         //.cflag("-DWOLFSSL_MIN_ECC_BITS=256")
-        .cflag("-DWOLFSSL_CALLBACKS")
-        .cflag("-g")
+        .cflag("-DWOLFSSL_CALLBACKS") // FIXME: Elso some msg callbacks are not called // Required for cleanup of ex data
+        //FIXME broken: .cflag("-DHAVE_EX_DATA_CLEANUP_HOOKS") // Required for cleanup of ex data
+        // Strip debug
+        //.cflag("-g")// FIXME: Reenable?
         .cflag("-fPIC");
 
     if cfg!(feature = "sancov") {
