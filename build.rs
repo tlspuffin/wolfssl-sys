@@ -36,6 +36,7 @@ fn extract_wolfssl(dest: &str) -> std::io::Result<()> {
     Command::new("tar")
         .arg("-zxvf")
         .arg("vendor/wolfssl-5.2.0-stable.tar.gz")
+        //.arg("vendor/wolfssl-5.3.0-stable.tar.gz")
         .arg("-C")
         .arg(dest)
         .status()
@@ -59,51 +60,37 @@ pub fn insert_claim_interface(additional_headers: &PathBuf) -> std::io::Result<(
 Builds WolfSSL
 */
 fn build_wolfssl(dest: &str) -> PathBuf {
-    let additional_headers = PathBuf::from(dest).join("additional_headers");
-
-    std::fs::create_dir_all(&additional_headers).unwrap();
-    insert_claim_interface(&additional_headers).unwrap();
-
     let mut cc = "clang".to_owned();
 
-    // Make additional headers available
-    cc.push_str(
-        format!(
-            " -I{}",
-            canonicalize(&additional_headers).unwrap().to_str().unwrap()
-        )
-        .as_str(),
-    );
-
-    if cfg!(feature = "sancov") {
-        cc.push_str(" -fsanitize-coverage=trace-pc-guard");
-    }
-
-    let b = Config::new(format!("{}/wolfssl-5.2.0-stable", dest))
+    let mut config = Config::new(format!("{}/wolfssl-5.2.0-stable", dest));
+    //let mut config = Config::new(format!("{}/wolfssl-5.3.0-stable", dest));
+    config
         .reconf("-ivf")
         // Only build the static library
         .enable_static()
         .disable_shared()
+        .enable("debug", None)
+        // Enable OpenSSL Compatibility layer
+        .enable("opensslall", None)
+        .enable("opensslextra", None)
+        .enable("context-extra-user-data", None)
         // Fortunately, there is one comfy option which I’ve used when compiling wolfSSL: --enable-all.
         // It enables all options, including the OpenSSL compatibility layer and leaves out the SSL 3 protocol.
-        .enable("all", None)
-        .enable("debug", None)
+        //.enable("all", None)
         //.enable("opensslcoexist", None)
-        // Enable OpenSSL Compatibility layer
-        // .enable("opensslextra", None) // prefix "enable-" is already added
-        /*
+        .enable("keygen", None) // Support for RSA certs
         // Enable TLS/1.3
         .enable("tls13", None)
         // Disable old TLS versions
-        .disable("oldtls", None)
+        //.disable("oldtls", None)
         // Enable AES hardware acceleration
         .enable("aesni", None)
         // Enable single threaded mode
-        .enable("singlethreaded", None)
+        //.enable("singlethreaded", None) // incompatible with "all"
         // Enable D/TLS
         .enable("dtls", None)
         // Enable single precision
-        .enable("sp", None)
+        .enable("sp", None) // FIXME: Fixes a memory leak?
         // Enable single precision ASM
         .enable("sp-asm", None)
         // Enable setting the D/TLS MTU size
@@ -113,21 +100,47 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         // Enable Intel ASM optmisations
         .enable("intelasm", None)
         // Disable DH key exchanges
-        .disable("dh", None)
+        //.disable("dh", None)
         // Enable elliptic curve exchanges
         .enable("curve25519", None)
         // Enable Secure Renegotiation
         .enable("secure-renegotiation", None)
-        */
         // CFLAGS
-        .cflag("-g")
-        .cflag("-fPIC")
-        .cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
-        .cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
-        .cflag("-DWOLFSSL_MIN_ECC_BITS=256")
-        .cflag("-DHAVE_SECRET_CALLBACK")
+        //.cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
+        //.cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
+        //.cflag("-DWOLFSSL_MIN_ECC_BITS=256")
         .cflag("-DWOLFSSL_CALLBACKS")
-        .cflag("-DWOLFSSL_TLS13")
+        .cflag("-g")
+        .cflag("-fPIC");
+
+    if cfg!(feature = "sancov") {
+        config.cflag("-fsanitize-coverage=trace-pc-guard");
+    }
+
+    if cfg!(feature = "asan") {
+        config
+            .cflag("-fsanitize=address")
+            .cflag("-shared-libsan")
+            .cflag("-Wl,-rpath=/usr/lib/clang/10/lib/linux/"); // We need to tell the library where ASAN is, else the tests fail within wolfSSL
+        println!("cargo:rustc-link-lib=asan");
+    }
+
+    if cfg!(feature = "additional-headers") {
+        let additional_headers = PathBuf::from(dest).join("additional_headers");
+
+        std::fs::create_dir_all(&additional_headers).unwrap();
+        insert_claim_interface(&additional_headers).unwrap();
+        // Make additional headers available
+        config.cflag(
+            format!(
+                " -I{}",
+                canonicalize(&additional_headers).unwrap().to_str().unwrap()
+            )
+            .as_str(),
+        );
+    }
+
+    let b = config
         .env("CC", cc)
         // Build it
         .build();
@@ -164,6 +177,7 @@ fn main() -> std::io::Result<()> {
         .header("wrapper.h")
         .header(format!(
             "{}/wolfssl-5.2.0-stable/wolfssl/internal.h",
+            //"{}/wolfssl-5.3.0-stable/wolfssl/internal.h",
             dst_string
         ))
         .clang_arg(format!("-I{}/include/", dst_string))

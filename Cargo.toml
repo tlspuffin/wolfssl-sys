@@ -19,3 +19,4 @@ security-claims = { path = "../../tlspuffin-claims" }
 openssl = [] # for enabling the OpenSSL compatibility layer, always turned on for now
 vendored-wolfssl520 = []
 sancov = []
+asan = []
