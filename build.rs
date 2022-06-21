@@ -180,7 +180,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         //.cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         //.cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         //.cflag("-DWOLFSSL_MIN_ECC_BITS=256")
-        .cflag("-DWOLFSSL_CALLBACKS") // FIXME: Elso some msg callbacks are not called // Required for cleanup of ex data
+        .cflag("-DWOLFSSL_CALLBACKS") // FIXME: Elso some msg callbacks are not called
         //FIXME broken: .cflag("-DHAVE_EX_DATA_CLEANUP_HOOKS") // Required for cleanup of ex data
         // Strip debug
         //.cflag("-g")// FIXME: Reenable?
