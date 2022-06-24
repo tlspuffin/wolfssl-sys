@@ -4,14 +4,16 @@
 
 extern crate bindgen;
 
+use std::{
+    collections::HashSet,
+    env,
+    fs::{canonicalize, File},
+    io::Write,
+    path::PathBuf,
+    process::Command,
+};
+
 use autotools::Config;
-use std::collections::HashSet;
-use std::env;
-use std::fs::canonicalize;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
-use std::process::Command;
 
 /**
  * Work around for bindgen creating duplicate values.
@@ -29,18 +31,30 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
     }
 }
 
+const REF: &str = if cfg!(feature = "vendored-wolfssl530") {
+    "v5.3.0-stable"
+} else if cfg!(feature = "vendored-wolfssl520") {
+    "v5.2.0-stable"
+} else if cfg!(feature = "vendored-wolfssl510") {
+    "v5.1.0-stable"
+} else {
+    "master"
+};
+
 /**
  * Extract WolfSSL
  */
-fn extract_wolfssl(dest: &str) -> std::io::Result<()> {
-    Command::new("tar")
-        .arg("-zxvf")
-        .arg("vendor/wolfssl-5.2.0-stable.tar.gz")
-        //.arg("vendor/wolfssl-5.3.0-stable.tar.gz")
-        .arg("-C")
+fn clone_wolfssl(dest: &str) -> std::io::Result<()> {
+    std::fs::remove_dir_all(dest)?;
+    Command::new("git")
+        .arg("clone")
+        .arg("--depth")
+        .arg("1")
+        .arg("--branch")
+        .arg(REF)
+        .arg("https://github.com/wolfSSL/wolfssl.git")
         .arg(dest)
-        .status()
-        .unwrap();
+        .status()?;
 
     Ok(())
 }
@@ -62,7 +76,7 @@ Builds WolfSSL
 fn build_wolfssl(dest: &str) -> PathBuf {
     let mut cc = "clang".to_owned();
 
-    let mut config = Config::new(format!("{}/wolfssl-5.2.0-stable", dest));
+    let mut config = Config::new(dest);
     //let mut config = Config::new(format!("{}/wolfssl-5.3.0-stable", dest));
     config
         .reconf("-ivf")
@@ -226,7 +240,7 @@ fn main() -> std::io::Result<()> {
     let dst_string = env::var("OUT_DIR").unwrap();
 
     // Extract WolfSSL
-    extract_wolfssl(&dst_string)?;
+    clone_wolfssl(&dst_string)?;
     // Configure and build WolfSSL
     let dst = build_wolfssl(&dst_string);
 
@@ -248,11 +262,7 @@ fn main() -> std::io::Result<()> {
     // Build the Rust binding
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
-        .header(format!(
-            "{}/wolfssl-5.2.0-stable/wolfssl/internal.h",
-            //"{}/wolfssl-5.3.0-stable/wolfssl/internal.h",
-            dst_string
-        ))
+        .header(format!("{}/wolfssl/internal.h", dst_string))
         .clang_arg(format!("-I{}/include/", dst_string))
         .parse_callbacks(Box::new(ignored_macros))
         .rustfmt_bindings(true)
