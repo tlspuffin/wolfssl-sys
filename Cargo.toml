@@ -17,6 +17,7 @@ security-claims = { path = "../../tlspuffin-claims" }
 cfg-if = "1.0.0"
 
 [features]
+vendored-wolfssl440 = []
 vendored-wolfssl510 = []
 vendored-wolfssl520 = []
 vendored-wolfssl530 = []

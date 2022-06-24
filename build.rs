@@ -37,6 +37,8 @@ const REF: &str = if cfg!(feature = "vendored-wolfssl530") {
     "v5.2.0-stable"
 } else if cfg!(feature = "vendored-wolfssl510") {
     "v5.1.0-stable"
+} else if cfg!(feature = "vendored-wolfssl440") {
+    "v4.4.0-stable"
 } else {
     "master"
 };
@@ -190,10 +192,12 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .enable("trusted-ca", None)
         .enable("session-ticket", None)
         .enable("earlydata", None)*/
+        .enable("psk", None) // FIXME: Only 4.4.0
         // CFLAGS
         //.cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         //.cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
         //.cflag("-DWOLFSSL_MIN_ECC_BITS=256")
+        .cflag("-DHAVE_EX_DATA") // FIXME: Only 4.4.0
         .cflag("-DWOLFSSL_CALLBACKS") // FIXME: Elso some msg callbacks are not called
         //FIXME broken: .cflag("-DHAVE_EX_DATA_CLEANUP_HOOKS") // Required for cleanup of ex data
         // Strip debug
@@ -245,6 +249,7 @@ fn main() -> std::io::Result<()> {
     let dst = build_wolfssl(&dst_string);
 
     // We want to block some macros as they are incorrectly creating duplicate values
+    // https://github.com/rust-lang/rust-bindgen/issues/687
     let mut hash_ignored_macros = HashSet::new();
     for i in vec![
         "IPPORT_RESERVED",
@@ -254,6 +259,9 @@ fn main() -> std::io::Result<()> {
         "CRYPTO_LOCK",
         "ASN1_STRFLGS_ESC_MSB",
         "SSL_MODE_RELEASE_BUFFERS",
+        // Woflss 4.4.0
+        "GEN_IPADD",
+        "EVP_PKEY_RSA",
     ] {
         hash_ignored_macros.insert(i.to_string());
     }
