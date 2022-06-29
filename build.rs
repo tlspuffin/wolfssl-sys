@@ -76,7 +76,7 @@ pub fn insert_claim_interface(additional_headers: &PathBuf) -> std::io::Result<(
 Builds WolfSSL
 */
 fn build_wolfssl(dest: &str) -> PathBuf {
-    let mut cc = "clang".to_owned();
+    let cc = "clang".to_owned();
 
     let mut config = Config::new(dest);
     //let mut config = Config::new(format!("{}/wolfssl-5.3.0-stable", dest));
@@ -251,8 +251,7 @@ fn main() -> std::io::Result<()> {
     // We want to block some macros as they are incorrectly creating duplicate values
     // https://github.com/rust-lang/rust-bindgen/issues/687
     let mut hash_ignored_macros = HashSet::new();
-    for i in vec![
-        "IPPORT_RESERVED",
+    for i in &["IPPORT_RESERVED",
         "EVP_PKEY_DH",
         "BIO_CLOSE",
         "BIO_NOCLOSE",
@@ -261,8 +260,7 @@ fn main() -> std::io::Result<()> {
         "SSL_MODE_RELEASE_BUFFERS",
         // Woflss 4.3.0
         "GEN_IPADD",
-        "EVP_PKEY_RSA",
-    ] {
+        "EVP_PKEY_RSA"] {
         hash_ignored_macros.insert(i.to_string());
     }
     let ignored_macros = IgnoreMacros(hash_ignored_macros);
