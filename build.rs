@@ -95,6 +95,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         //.enable("all", None) // FIXME: Do not use this as its non-default
         //.enable("opensslcoexist", None) // FIXME: not needed
         .enable("keygen", None) // Support for RSA certs
+        .enable("certgen", None) // Support x509 decoding
         // Enable TLS/1.3
         .enable("tls13", None)
         // Disable old TLS versions
@@ -251,7 +252,8 @@ fn main() -> std::io::Result<()> {
     // We want to block some macros as they are incorrectly creating duplicate values
     // https://github.com/rust-lang/rust-bindgen/issues/687
     let mut hash_ignored_macros = HashSet::new();
-    for i in &["IPPORT_RESERVED",
+    for i in &[
+        "IPPORT_RESERVED",
         "EVP_PKEY_DH",
         "BIO_CLOSE",
         "BIO_NOCLOSE",
@@ -260,7 +262,8 @@ fn main() -> std::io::Result<()> {
         "SSL_MODE_RELEASE_BUFFERS",
         // Woflss 4.3.0
         "GEN_IPADD",
-        "EVP_PKEY_RSA"] {
+        "EVP_PKEY_RSA",
+    ] {
         hash_ignored_macros.insert(i.to_string());
     }
     let ignored_macros = IgnoreMacros(hash_ignored_macros);
