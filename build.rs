@@ -103,21 +103,21 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         // Disable old TLS versions
         //.disable("oldtls", None) // FIXME: We want TLS 1.2
         // Enable AES hardware acceleration
-        .enable("aesni", None)
+       // .enable("aesni", None)
         // Enable single threaded mode
         //.enable("singlethreaded", None) // FIXME: incompatible with "all"
         // Enable D/TLS
         .enable("dtls", None)
         // Enable single precision
-        .enable("sp", None) // FIXME: Fixes a memory leak?
+     //   .enable("sp", None) // FIXME: Fixes a memory leak?
         // Enable single precision ASM
-        .enable("sp-asm", None)
+    //    .enable("sp-asm", None)
         // Enable setting the D/TLS MTU size
         .enable("dtls-mtu", None)
         // Disable SHA3
         .disable("sha3", None)
         // Enable Intel ASM optmisations
-        .enable("intelasm", None)
+    //    .enable("intelasm", None)
         // Disable DH key exchanges
         //.disable("dh", None) // FIXME: Why should we disable it?
         // Enable elliptic curve exchanges
@@ -195,7 +195,7 @@ fn build_wolfssl(dest: &str) -> PathBuf {
         .enable("trusted-ca", None)
         .enable("session-ticket", None)
         .enable("earlydata", None)*/
-        .enable("psk", None) // FIXME: Only 4.3.0
+        .enaÅble("psk", None) // FIXME: Only 4.3.0
         // CFLAGS
         //.cflag("-DWOLFSSL_DTLS_ALLOW_FUTURE")
         //.cflag("-DWOLFSSL_MIN_RSA_BITS=2048")
