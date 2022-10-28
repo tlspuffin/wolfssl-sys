@@ -8,7 +8,8 @@ use std::{
     collections::HashSet,
     env,
     fs::{canonicalize, File},
-    io::Write,
+    io,
+    io::{ErrorKind, Write},
     path::PathBuf,
     process::Command,
 };
@@ -240,14 +241,30 @@ fn build_wolfssl(dest: &str) -> PathBuf {
     b
 }
 
-fn main() -> std::io::Result<()> {
-    // Get the build directory
-    let dst_string = env::var("OUT_DIR").unwrap();
+fn patch_wolfssl(source_dir: &PathBuf, out_dir: &str, patch: &str) -> std::io::Result<()> {
+    let status = Command::new("git")
+        .current_dir(out_dir)
+        .arg("am")
+        .arg(source_dir.join("patches").join(patch).to_str().unwrap())
+        .status()?;
 
-    // Extract WolfSSL
-    clone_wolfssl(&dst_string)?;
+    if !status.success() {
+        return Err(io::Error::from(ErrorKind::Other));
+    }
+
+    Ok(())
+}
+
+fn main() -> std::io::Result<()> {
+    let source_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let out_dir = env::var("OUT_DIR").unwrap();
+    clone_wolfssl(&out_dir)?;
+
+    patch_wolfssl(&source_dir, &out_dir, "fix-CVE-2022-25640.patch").unwrap();
+    patch_wolfssl(&source_dir, &out_dir, "fix-CVE-2022-39173.patch").unwrap();
+
     // Configure and build WolfSSL
-    let dst = build_wolfssl(&dst_string);
+    let dst = build_wolfssl(&out_dir);
 
     // We want to block some macros as they are incorrectly creating duplicate values
     // https://github.com/rust-lang/rust-bindgen/issues/687
@@ -271,8 +288,8 @@ fn main() -> std::io::Result<()> {
     // Build the Rust binding
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
-        .header(format!("{}/wolfssl/internal.h", dst_string))
-        .clang_arg(format!("-I{}/include/", dst_string))
+        .header(format!("{}/wolfssl/internal.h", out_dir))
+        .clang_arg(format!("-I{}/include/", out_dir))
         .parse_callbacks(Box::new(ignored_macros))
         .rustfmt_bindings(true)
         .generate()
@@ -287,9 +304,9 @@ fn main() -> std::io::Result<()> {
     println!("cargo:rustc-link-lib=static=wolfssl");
     println!(
         "cargo:rustc-link-search=native={}",
-        format!("{}/lib/", dst_string)
+        format!("{}/lib/", out_dir)
     );
-    println!("cargo:include={}", dst_string);
+    println!("cargo:include={}", out_dir);
 
     // Invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
